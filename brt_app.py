@@ -20,7 +20,7 @@ st.title("O BRT tá chegando em Vaz Lobo?")
     ttl=60,
     show_spinner="Consultando os dados da API do BRT...",
 )
-def get_data():
+def get_data() -> list[tuple[float, float], Response]:
     """Get predictions of next arrivals at Vaz Lobo station from the BRT API
 
     Returns:
