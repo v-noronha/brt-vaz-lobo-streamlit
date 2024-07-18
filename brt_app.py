@@ -1,6 +1,7 @@
 import streamlit as st
 
 import requests
+import time
 
 import folium
 from folium.map import Icon
@@ -33,12 +34,20 @@ def get_data():
 loc, results = get_data()
 
 next_brts = (
-    pd.DataFrame(results.json()["results"])
+    pd.DataFrame(results.json()["results"])[
+        ["codigo", "dataHora", "trip_short_name", "estimated_time_arrival"]
+    ]
     .sort_values("estimated_time_arrival")
     .query("estimated_time_arrival > 0")
+    .rename(
+        columns={
+            "trip_short_name": "linha",
+            "estimated_time_arrival": "previsão de chegada (minutos)",
+        }
+    )[["codigo", "linha", "previsão de chegada (minutos)"]]
 )
 
-next_arrival = next_brts.head(1)["estimated_time_arrival"].item()
+next_arrival = next_brts.head(1)["previsão de chegada (minutos)"].item()
 minutes = int(next_arrival)
 seconds = (next_arrival - minutes) * 60
 
