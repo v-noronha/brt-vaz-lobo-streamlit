@@ -8,6 +8,7 @@ from requests import Response
 
 import folium
 from folium.map import Icon
+from folium.plugins import MiniMap
 
 import streamlit as st
 from streamlit_folium import st_folium
@@ -56,18 +57,10 @@ else:
     json_results = results.json()["results"]
 
     brt_predictions = (
-        pd.DataFrame(json_results)[
-            ["codigo", "dataHora", "trip_short_name", "estimated_time_arrival"]
-        ]
+        pd.DataFrame(json_results)
+        .query("estimated_time_arrival > 0 & estimated_time_arrival < 16")
         .sort_values("estimated_time_arrival")
-        .query("estimated_time_arrival > 0")
-        .rename(
-            columns={
-                "trip_short_name": "linha",
-                "estimated_time_arrival": "previsão de chegada (minutos)",
-            }
-        )
-        .reset_index(drop=True)[["codigo", "linha", "previsão de chegada (minutos)"]]
+        .reset_index(drop=True)
     )
 
     next_arrival = brt_predictions["previsão de chegada (minutos)"].iloc[0]
@@ -78,30 +71,34 @@ else:
         f"O próximo BRT deve estar chegando em {minutes} minuto(s) e {seconds:.0f} segundo(s)..."
     )
 
-    st.dataframe(brt_predictions)
+        st.info(
+            f"O próximo BRT deve estar chegando em {minutes} minuto(s) e {seconds:.0f} segundo(s)..."
+        )
 
-    vaz_lobo = folium.Map(
-        location=loc,
-        zoom_start=12,
-        scrollWheelZoom=False,
-    )
+        vaz_lobo = folium.Map(
+            location=loc,
+            zoom_start=11,
+            scrollWheelZoom=False,
+        )
 
-    for result in json_results:
-        if result["estimated_time_arrival"] <= 0:
-            continue
+        for result in brt_predictions.to_dict(orient="records"):
+            if result["estimated_time_arrival"] <= 0:
+                continue
 
-        arrival_time = floor(result["estimated_time_arrival"])
+            arrival_time = floor(result["estimated_time_arrival"])
+
+            folium.Marker(
+                location=[result["latitude"], result["longitude"]],
+                icon=Icon(color="orange", prefix="fa", icon="bus"),
+                tooltip=f"Tempo de chegada desse BRT: {arrival_time:.0f} min",
+            ).add_to(vaz_lobo)
 
         folium.Marker(
-            location=[result["latitude"], result["longitude"]],
-            icon=Icon(color="orange", prefix="fa", icon="bus"),
-            tooltip=f"Tempo de chegada desse BRT: {arrival_time:.0f} min",
+            location=loc,
+            tooltip="Estação BRT Vaz Lobo",
+            icon=Icon(color="blue", prefix="fa", icon="signs-post"),
         ).add_to(vaz_lobo)
 
-    folium.Marker(
-        location=loc,
-        tooltip="Estação BRT Vaz Lobo",
-        icon=Icon(color="blue", prefix="fa", icon="signs-post"),
-    ).add_to(vaz_lobo)
+        MiniMap().add_to(vaz_lobo)
 
-    st_data = st_folium(vaz_lobo)
+        st_data = st_folium(vaz_lobo)
