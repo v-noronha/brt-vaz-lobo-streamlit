@@ -12,6 +12,7 @@ from folium.plugins import MiniMap
 
 import streamlit as st
 from streamlit_folium import st_folium
+from streamlit_extras.let_it_rain import rain
 
 
 st.title("O BRT tá chegando em Vaz Lobo?")
@@ -63,13 +64,19 @@ else:
         .reset_index(drop=True)
     )
 
-    next_arrival = brt_predictions["previsão de chegada (minutos)"].iloc[0]
-    minutes = int(next_arrival)
-    seconds = (next_arrival - minutes) * 60
+    if brt_predictions.shape[0] < 1:
+        st.error("Sem previsões no momento... Tente mais tarde")
+        rain(
+            emoji="😭",
+            font_size=54,
+            falling_speed=5,
+            animation_length=10,
+        )
 
-    st.info(
-        f"O próximo BRT deve estar chegando em {minutes} minuto(s) e {seconds:.0f} segundo(s)..."
-    )
+    else:
+        next_arrival = brt_predictions["estimated_time_arrival"].iloc[0]
+        minutes = int(next_arrival)
+        seconds = (next_arrival - minutes) * 60
 
         st.info(
             f"O próximo BRT deve estar chegando em {minutes} minuto(s) e {seconds:.0f} segundo(s)..."
